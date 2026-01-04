@@ -2,6 +2,9 @@ local Snacks = require("snacks")
 local marks = {}
 local keymaps = {}
 
+-- What project are we on?
+local root = vim.fs.root(0, ".git")
+
 M = {}
 
 ---Go to a mark saving the view before leaving and restoring it
@@ -123,8 +126,15 @@ local index_all_marks = function()
   for _, tbl in ipairs(vim.fn.getmarklist()) do
     -- Take only the A-Z marks
     if tbl.mark:match("'[A-Z]") then
+      -- Filter by project as well
+      local absfile = vim.fs.abspath(tbl.file)
+      if root and absfile:sub(1, root:len()) ~= root then
+        goto continue
+      end
+
       M.mark_add(tbl.mark:sub(2), tbl.file)
     end
+    ::continue::
   end
 end
 
