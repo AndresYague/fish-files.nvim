@@ -12,6 +12,19 @@ local root = vim.fs.root(0, {
   "pyproject.toml",
 })
 
+-- Create the cache directory
+local cache_dir = vim.fs.joinpath(vim.fn.stdpath("cache"), "mark-jumps")
+
+local cache_file
+if root then
+  cache_file = vim.fs.joinpath(cache_dir, root:gsub("%/", "%%") .. ".cache")
+else
+  cache_file = vim.fs.joinpath(cache_dir, "_general_.cache")
+end
+
+vim.fn.mkdir(cache_dir, "p")
+vim.print(cache_file) -- TODO: remove
+
 M = {}
 
 ---Go to a mark saving the view before leaving and restoring it
