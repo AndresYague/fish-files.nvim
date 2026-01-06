@@ -33,7 +33,6 @@ local edit_file = function(filename)
   if vim.api.nvim_buf_get_name(0) ~= "" then
     vim.cmd.mkview()
   end
-  vim.print("Opening " .. filename)
   vim.cmd.edit(filename)
   pcall(vim.cmd.loadview())
 end
@@ -51,22 +50,26 @@ local normalize_fname = function(filename)
   return vim.fs.normalize(vim.fs.abspath(filename))
 end
 
+---Shorten a filename for easier visualization
+---@param filename string
+---@return string
+local shorten_filename = function(filename)
+  return vim.fs.joinpath(
+    vim.fs.basename(vim.fs.dirname(filename)),
+    vim.fs.basename(filename)
+  )
+end
+
 ---Add keymap for the filename
 ---@param filename string
 ---@return nil
 local add_keymap = function(filename)
-  -- Shorten filename
-  filename = vim.fs.joinpath(
-    vim.fs.basename(vim.fs.dirname(filename)),
-    vim.fs.basename(filename)
-  )
-
   -- Increment keymaps
   keymaps = keymaps + 1
   local index = keymaps
   vim.keymap.set("n", M.opts.prefix .. index, function()
     edit_file(filename)
-  end, { desc = "File: " .. filename })
+  end, { desc = "File: " .. shorten_filename(filename) })
 end
 
 ---Clean and re-create all the keymaps
@@ -99,7 +102,7 @@ M.add_filename = function(filename)
   end
 
   -- Add filename and keymap
-  table.insert(filenames, filename)
+  filenames[#filenames+1] = filename
   add_keymap(filename)
 end
 
@@ -131,7 +134,11 @@ end
 ---@param prompt string
 ---@return nil
 local file_action = function(action, prompt)
-  Snacks.picker.select(filenames, { prompt = prompt }, function(filename)
+  local short_fnames = {}
+  for idx, fname in ipairs(filenames) do
+    short_fnames[idx] = shorten_filename(fname)
+  end
+  Snacks.picker.select(short_fnames, { prompt = prompt }, function(filename)
     -- User canceled
     if not filename then
       return
