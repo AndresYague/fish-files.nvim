@@ -13,7 +13,7 @@ local root = vim.fs.root(0, {
 })
 
 -- Create the cache directory
-local cache_dir = vim.fs.joinpath(vim.fn.stdpath("cache"), "mark-jumps")
+local cache_dir = vim.fs.joinpath(vim.fn.stdpath("cache"), "fish-files")
 vim.fn.mkdir(cache_dir, "p")
 
 -- Get the filename for the cache
@@ -29,7 +29,7 @@ M = {}
 ---Open a filename, loading the view
 ---@param filename string?
 ---@return nil
-local edit_file = function(filename)
+local reel_file = function(filename)
   if vim.api.nvim_buf_get_name(0) ~= "" then
     vim.cmd.mkview()
   end
@@ -68,8 +68,8 @@ local add_keymap = function(filename)
   keymaps = keymaps + 1
   local index = keymaps
   vim.keymap.set("n", M.opts.prefix .. index, function()
-    edit_file(filename)
-  end, { desc = "File: " .. shorten_filename(filename) })
+    reel_file(filename)
+  end, { desc = "Reel file: " .. shorten_filename(filename) })
 end
 
 ---Clean and re-create all the keymaps
@@ -90,7 +90,7 @@ end
 ---Add a keymap for the filename
 ---@param filename string?
 ---@return nil
-M.add_filename = function(filename)
+M.add_hook = function(filename)
   -- Normalize current filename
   filename = normalize_fname(filename)
 
@@ -109,7 +109,7 @@ end
 ---@param filename string?
 ---@param do_re_index boolean?
 ---@return nil
-M.remove_filename = function(filename, do_re_index)
+M.remove_hook = function(filename, do_re_index)
   if do_re_index == nil then
     do_re_index = true
   end
@@ -145,37 +145,30 @@ local file_action = function(action, prompt)
     end
 
     if action == "go" then
-      edit_file(filename)
+      reel_file(filename)
     elseif action == "delete" then
       -- Remove filename
-      M.remove_filename(filename)
-    elseif action == "change" then
-      -- Remove this filename and add the current file
-      M.remove_filename(filename)
-      M.add_filename()
+      M.remove_hook(filename)
     end
   end)
 end
 
 ---Function to remove all filenames
 ---@return nil
-M.remove_all = function()
+M.unhook_all_files = function()
   for _, fname in ipairs(filenames) do
-    M.remove_filename(fname, false)
+    M.remove_hook(fname, false)
   end
   re_index_keymaps()
 end
 
 -- Define the functions use file_action
 
-M.choose_file = function()
+M.choose_reel_file = function()
   file_action("go", "Choose go to file")
 end
-M.choose_delete = function()
+M.choose_remove_hook = function()
   file_action("delete", "Choose delete filename")
-end
-M.choose_change = function()
-  file_action("delete", "Choose change filename")
 end
 
 ---@param opts {prefix: string}?
@@ -188,7 +181,7 @@ M.setup = function(opts)
   local file_read = io.open(cache_file, "r")
   if file_read then
     for line in file_read:lines() do
-      M.add_filename(line)
+      M.add_hook(line)
     end
   end
 
@@ -203,7 +196,7 @@ M.setup = function(opts)
         end
         file_write:close()
       else
-        vim.notify("mark-jumps: could not cache file", vim.log.levels.INFO)
+        vim.notify("fish-files: could not cache file", vim.log.levels.INFO)
       end
     end,
     once = true,
