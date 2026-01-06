@@ -1,4 +1,4 @@
-# mark-jumps.nvim
+# fish-files.nvim
 
 ## Description
 
