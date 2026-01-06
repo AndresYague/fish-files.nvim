@@ -12,6 +12,17 @@ local root = vim.fs.root(0, {
   "pyproject.toml",
 })
 
+---Open a filename, loading the view
+---@param filename string?
+---@return nil
+local edit_file = function(filename)
+  if vim.api.nvim_buf_get_name(0) ~= "" then
+    vim.cmd.mkview()
+  end
+  vim.cmd.edit(filename)
+  pcall(vim.cmd.loadview())
+end
+
 -- Create the cache directory
 local cache_dir = vim.fs.joinpath(vim.fn.stdpath("cache"), "mark-jumps")
 vim.fn.mkdir(cache_dir, "p")
@@ -82,7 +93,7 @@ M.mark_add = function(filename)
   -- Add the keymap
   local fname_index = #filenames
   vim.keymap.set("n", M.opts.prefix .. fname_index, function()
-    vim.cmd.edit(filenames[fname_index])
+    edit_file(filenames[fname_index])
   end, { desc = "File: " .. filename })
   keymaps[#keymaps + 1] = fname_index
 end
@@ -125,7 +136,7 @@ local choose_mark = function(action, prompt)
     end
 
     if action == "go" then
-      vim.cmd.edit(filename)
+      edit_file(filename)
     elseif action == "delete" then
       -- Remove mark from nvim
       M.remove_filename(filename)
