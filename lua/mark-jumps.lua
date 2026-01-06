@@ -183,8 +183,8 @@ M.setup = function(opts)
       if file_write then
         for _, fname in ipairs(filenames) do
           file_write:write(fname .. "\n")
-          file_write:close()
         end
+        file_write:close()
       else
         vim.notify("mark-jumps: could not cache file", vim.log.levels.INFO)
       end
