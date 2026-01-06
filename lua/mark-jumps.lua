@@ -34,7 +34,7 @@ local edit_file = function(filename)
     vim.cmd.mkview()
   end
   vim.cmd.edit(filename)
-  pcall(vim.cmd.loadview())
+  pcall(vim.cmd.loadview(), "")
 end
 
 ---Normalize the filename. If "filename" is not provided,
