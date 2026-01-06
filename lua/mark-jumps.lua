@@ -1,5 +1,5 @@
 local Snacks = require("snacks")
-local keymaps = {}
+local keymaps = 0
 local filenames = {}
 
 -- What project are we on?
@@ -33,6 +33,7 @@ local edit_file = function(filename)
   if vim.api.nvim_buf_get_name(0) ~= "" then
     vim.cmd.mkview()
   end
+  vim.print("Opening " .. filename)
   vim.cmd.edit(filename)
   pcall(vim.cmd.loadview())
 end
@@ -50,22 +51,36 @@ local normalize_fname = function(filename)
   return vim.fs.normalize(vim.fs.abspath(filename))
 end
 
+---Add keymap for the filename
+---@param filename string
+---@return nil
+local add_keymap = function(filename)
+  -- Shorten filename
+  filename = vim.fs.joinpath(
+    vim.fs.basename(vim.fs.dirname(filename)),
+    vim.fs.basename(filename)
+  )
+
+  -- Increment keymaps
+  keymaps = keymaps + 1
+  local index = keymaps
+  vim.keymap.set("n", M.opts.prefix .. index, function()
+    edit_file(filename)
+  end, { desc = "File: " .. filename })
+end
+
 ---Clean and re-create all the keymaps
 ---@return nil
 local re_index_keymaps = function()
   -- Clean the keymaps
-  for _, keymap in ipairs(keymaps) do
-    vim.api.nvim_del_keymap("n", M.opts.prefix .. keymap)
+  for idx = 1, keymaps do
+    vim.api.nvim_del_keymap("n", M.opts.prefix .. idx)
   end
-  keymaps = {}
+  keymaps = 0
 
   -- Now create them again
-  for idx, fname in ipairs(filenames) do
-    -- Add the keymaps
-    vim.keymap.set("n", M.opts.prefix .. idx, function()
-      edit_file(fname)
-    end, { desc = "File: " .. fname })
-    table.insert(keymaps, idx)
+  for _, fname in ipairs(filenames) do
+    add_keymap(fname)
   end
 end
 
@@ -83,20 +98,9 @@ M.add_filename = function(filename)
     end
   end
 
+  -- Add filename and keymap
   table.insert(filenames, filename)
-
-  -- Shorten filename
-  filename = vim.fs.joinpath(
-    vim.fs.basename(vim.fs.dirname(filename)),
-    vim.fs.basename(filename)
-  )
-
-  -- Add the keymap
-  local fname_index = #filenames
-  vim.keymap.set("n", M.opts.prefix .. fname_index, function()
-    edit_file(filenames[fname_index])
-  end, { desc = "File: " .. filename })
-  keymaps[#keymaps + 1] = fname_index
+  add_keymap(filename)
 end
 
 ---@param filename string?
