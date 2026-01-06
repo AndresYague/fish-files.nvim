@@ -141,5 +141,6 @@ TODO                                                    *fish-files.nvim-todo*
 
 
 - Remove snacks dependency
+- Make hooks manageable like a buffer
 
 vim:tw=78:ts=8:ft=help:norl:

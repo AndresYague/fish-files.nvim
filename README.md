@@ -105,3 +105,4 @@ This plugin is inspired by [harpoon](https://github.com/ThePrimeagen/harpoon/tre
 ## TODO
 
 - Remove snacks dependency
+- Make hooks manageable like a buffer

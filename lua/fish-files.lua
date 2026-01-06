@@ -165,10 +165,10 @@ end
 -- Define the functions use file_action
 
 M.choose_reel_file = function()
-  file_action("go", "Choose go to file")
+  file_action("go", "Choose file to reel")
 end
 M.choose_remove_hook = function()
-  file_action("delete", "Choose delete filename")
+  file_action("delete", "Choose file to unhook")
 end
 
 ---@param opts {prefix: string}?
