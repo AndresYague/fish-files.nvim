@@ -3,7 +3,7 @@ local edit_cache = require("utils").edit_cache
 local keymaps = 0
 local prefix
 
----@type string[]
+---@type string[] List of all files hooked
 local filename_list = {}
 
 -- What project are we on?
@@ -30,8 +30,8 @@ end
 
 M = {}
 
----Open a filename, loading the view
----@param filename string?
+---Open a file, loading the view
+---@param filename string? Name of the file
 ---@return nil
 local reel_file = function(filename)
   if vim.api.nvim_buf_get_name(0) ~= "" then
@@ -41,21 +41,19 @@ local reel_file = function(filename)
   pcall(vim.cmd.loadview(), "")
 end
 
----Normalize the filename. If "filename" is not provided,
----take the current buffer
----@param filename string?
+---Normalize the filename. If "filename" is not provided, take the current
+---buffer
+---@param filename string? Name of the file
 ---@return string
 local normalize_fname = function(filename)
   -- Get current filename
-  if not filename then
-    filename = vim.api.nvim_buf_get_name(0)
-  end
+  if not filename then filename = vim.api.nvim_buf_get_name(0) end
 
   return vim.fs.normalize(vim.fs.abspath(filename))
 end
 
 ---Shorten a filename for easier visualization
----@param filename string
+---@param filename string -- Name of the file
 ---@return string
 local shorten_filename = function(filename)
   return vim.fs.joinpath(
@@ -65,7 +63,7 @@ local shorten_filename = function(filename)
 end
 
 ---Add keymap for the filename
----@param filename string
+---@param filename string Name of the file
 ---@return nil
 local add_keymap = function(filename)
   -- Increment keymaps
@@ -92,7 +90,7 @@ local re_index_keymaps = function()
 end
 
 ---Add a keymap for the filename
----@param filename string?
+---@param filename string? Name of the file
 ---@return nil
 local add_hook = function(filename)
   -- Normalize current filename
@@ -110,8 +108,8 @@ local add_hook = function(filename)
   add_keymap(filename)
 end
 
----@param filename string?
----@param do_re_index boolean?
+---@param filename string? Name of the file
+---@param do_re_index boolean? Re-index default True
 ---@return nil
 local remove_hook = function(filename, do_re_index)
   if do_re_index == nil then
@@ -134,8 +132,8 @@ local remove_hook = function(filename, do_re_index)
 end
 
 ---Perform an action on a chosen filename
----@param action string
----@param prompt string
+---@param action string What action to do
+---@param prompt string Which prompt to give the picker
 ---@return nil
 local file_action = function(action, prompt)
   local short_fnames = {}
@@ -220,7 +218,7 @@ M.manage_hooks = function()
   -- cache
 end
 
----@param opts {prefix: string}?
+---@param opts {prefix: string}? Options for the plugin
 ---@return nil
 M.setup = function(opts)
   opts = opts or {}
