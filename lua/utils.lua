@@ -1,38 +1,166 @@
 M = {}
 
----Open cache in floating window
----@param filename string -- File to open
+-- Create a bufnr already for the cache picker
+local cache_bufnr = vim.api.nvim_create_buf(false, true)
+local pretty_table
+local pretty_lines
+
+-- What project are we on?
+local root = vim.fs.root(0, {
+  ".git",
+  ".helix",
+  ".project",
+  "package.json",
+  "pom.xml",
+  "pyproject.toml",
+})
+
+-- NOTE: This one must be here for the picker
+
+---Open a file, loading the view
+---@param filename string? Name of the file
+---@return nil
+local reel_file = function(filename)
+  if vim.api.nvim_buf_get_name(0) ~= "" then
+    vim.cmd.mkview()
+  end
+  vim.cmd.edit(filename)
+  pcall(vim.cmd.loadview(), "")
+end
+
+-- Cache utility functions
+
+-- Create the cache directory
+local cache_dir = vim.fs.joinpath(vim.fn.stdpath("cache"), "fish-files")
+vim.fn.mkdir(cache_dir, "p")
+
+-- Get the filename for the cache
+local cache_file
+if root then
+  cache_file = vim.fs.joinpath(cache_dir, root:gsub("%/", "%%") .. ".cache")
+else
+  cache_file = vim.fs.joinpath(cache_dir, "_general_.cache")
+end
+
+---Write files to cache
+---@param filename_list string[]
+---@return nil
+local write_to_cache = function(filename_list)
+  local file_write = io.open(cache_file, "w+")
+  if file_write then
+    for _, fname in ipairs(filename_list) do
+      file_write:write(fname .. "\n")
+    end
+    file_write:close()
+  else
+    vim.notify("fish-files: could not cache file", vim.log.levels.INFO)
+  end
+end
+
+---Manage the cache, return true if the cache has been added to "pretty_table",
+---false if there was an error
+---@return boolean
+local get_pretty_table = function()
+  -- Read current cache
+  ---@type string[]
+  local current_cache = {}
+  local file_read = io.open(cache_file, "r")
+  if file_read then
+    for line in file_read:lines() do
+      current_cache[#current_cache + 1] = line
+    end
+  else
+    return false
+  end
+
+  -- Make table of pretty keys and full filenames
+  pretty_table = {}
+  pretty_lines = {}
+  for _, line in ipairs(current_cache) do
+    local pretty
+    if root then
+      pretty = line:sub(root:len() + 2)
+    else
+      pretty = line
+    end
+
+    pretty_table[pretty] = line
+    pretty_lines[#pretty_lines+1] = pretty
+  end
+
+  return true
+end
+
+---Read the pretty table keys from the given buffer and write the actual
+---filenames corresponding to them in the cache
+---@param bufnr integer
+---@return nil
+local pretty_bufr_to_cache = function(bufnr)
+  local buflines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, true)
+
+  local new_buffer = {}
+  for _, key in ipairs(buflines) do
+    new_buffer[#new_buffer + 1] = pretty_table[key]
+  end
+
+  write_to_cache(new_buffer)
+end
+
+---Open cache in floating window, return bufnr
 ---@param relsize number? -- Relative size of the floating window to the editor window
----@return string[]
-M.edit_cache = function(filename, relsize)
-  relsize = relsize or 0.5
-  local bufnr = vim.api.nvim_create_buf(false, true)
-  local new_buffer
+---@return nil
+M.edit_cache = function(relsize)
+  relsize = relsize or 0.3
 
   -- Hook manager group
   local hook_group =
     vim.api.nvim_create_augroup("hook-manager", { clear = true })
   vim.api.nvim_create_autocmd("BufEnter", {
     group = hook_group,
-    buffer = bufnr,
+    buffer = cache_bufnr,
     callback = function()
-      vim.api.nvim_buf_set_keymap(bufnr, "n", "q", ":q!<CR>", {})
-      vim.api.nvim_buf_set_keymap(bufnr, "n", "<ESC>", ":q!<CR>", {})
-    end,
-    once = true,
-  })
+      -- Exiting keymaps
+      vim.api.nvim_buf_set_keymap(cache_bufnr, "n", "q", ":q!<CR>", {})
+      vim.api.nvim_buf_set_keymap(cache_bufnr, "n", "<ESC>", ":q!<CR>", {})
 
-  vim.api.nvim_create_autocmd("BufWinLeave", {
-    group = hook_group,
-    buffer = bufnr,
-    callback = function()
-      new_buffer = vim.api.nvim_buf_get_lines(bufnr, 0, -1, true)
+      -- Saving keymaps
+      vim.api.nvim_buf_set_keymap(cache_bufnr, "ca", "w", "", {
+        callback = function()
+          pretty_bufr_to_cache(cache_bufnr)
+        end,
+      })
+      vim.api.nvim_buf_set_keymap(cache_bufnr, "ca", "wq", "", {
+        callback = function()
+          pretty_bufr_to_cache(cache_bufnr)
+          vim.cmd("q!")
+        end,
+      })
+      vim.api.nvim_buf_set_keymap(cache_bufnr, "ca", "x", "", {
+        callback = function()
+          pretty_bufr_to_cache(cache_bufnr)
+          vim.cmd("q!")
+        end,
+      })
+      vim.api.nvim_buf_set_keymap(cache_bufnr, "n", "ZZ", "", {
+        callback = function()
+          pretty_bufr_to_cache(cache_bufnr)
+          vim.cmd("q!")
+        end,
+      })
+
+      -- Pick value
+      vim.api.nvim_buf_set_keymap(cache_bufnr, "n", "<CR>", "", {
+        callback = function ()
+          vim.cmd("q!")
+          reel_file(pretty_table[vim.api.nvim_get_current_line()])
+        end
+      })
     end,
     once = true,
   })
 
   -- Open new window
-  vim.api.nvim_open_win(bufnr, true, {
+  vim.api.nvim_open_win(cache_bufnr, true, {
     relative = "editor",
 
     -- Center window and give it the desired relative size to the editor
@@ -44,12 +172,22 @@ M.edit_cache = function(filename, relsize)
     style = "minimal",
   })
 
-  -- Write to buffer
-  local str = { "This is a test", "And let's test" }
-  vim.api.nvim_buf_set_lines(bufnr, 0, 0, true, str)
+  -- Clear buffer
+  vim.api.nvim_buf_set_lines(cache_bufnr, 0, -1, true, { "" })
 
-  -- Return new_buffer
-  return new_buffer
+  if get_pretty_table() then
+    -- Write to buffer
+    local str = {}
+    for _, pretty in pairs(pretty_lines) do
+      str[#str + 1] = pretty
+    end
+    vim.api.nvim_buf_set_lines(cache_bufnr, 0, -1, true, str)
+  end
 end
+
+M.cache_bufnr = cache_bufnr
+M.cache_file = cache_file
+M.reel_file = reel_file
+M.write_to_cache = write_to_cache
 
 return M

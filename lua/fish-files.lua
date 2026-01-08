@@ -1,45 +1,16 @@
-local Snacks = require("snacks")
+local cache_bufnr = require("utils").cache_bufnr
+local cache_file = require("utils").cache_file
 local edit_cache = require("utils").edit_cache
+local reel_file = require("utils").reel_file
+local write_to_cache = require("utils").write_to_cache
+
 local keymaps = 0
 local prefix
 
 ---@type string[] List of all files hooked
 local filename_list = {}
 
--- What project are we on?
-local root = vim.fs.root(0, {
-  ".git",
-  ".helix",
-  ".project",
-  "package.json",
-  "pom.xml",
-  "pyproject.toml",
-})
-
--- Create the cache directory
-local cache_dir = vim.fs.joinpath(vim.fn.stdpath("cache"), "fish-files")
-vim.fn.mkdir(cache_dir, "p")
-
--- Get the filename for the cache
-local cache_file
-if root then
-  cache_file = vim.fs.joinpath(cache_dir, root:gsub("%/", "%%") .. ".cache")
-else
-  cache_file = vim.fs.joinpath(cache_dir, "_general_.cache")
-end
-
 M = {}
-
----Open a file, loading the view
----@param filename string? Name of the file
----@return nil
-local reel_file = function(filename)
-  if vim.api.nvim_buf_get_name(0) ~= "" then
-    vim.cmd.mkview()
-  end
-  vim.cmd.edit(filename)
-  pcall(vim.cmd.loadview(), "")
-end
 
 ---Normalize the filename. If "filename" is not provided, take the current
 ---buffer
@@ -47,7 +18,9 @@ end
 ---@return string
 local normalize_fname = function(filename)
   -- Get current filename
-  if not filename then filename = vim.api.nvim_buf_get_name(0) end
+  if not filename then
+    filename = vim.api.nvim_buf_get_name(0)
+  end
 
   return vim.fs.normalize(vim.fs.abspath(filename))
 end
@@ -131,30 +104,6 @@ local remove_hook = function(filename, do_re_index)
   end
 end
 
----Perform an action on a chosen filename
----@param action string What action to do
----@param prompt string Which prompt to give the picker
----@return nil
-local file_action = function(action, prompt)
-  local short_fnames = {}
-  for idx, fname in ipairs(filename_list) do
-    short_fnames[idx] = shorten_filename(fname)
-  end
-  Snacks.picker.select(short_fnames, { prompt = prompt }, function(filename)
-    -- User canceled
-    if not filename then
-      return
-    end
-
-    if action == "go" then
-      reel_file(filename)
-    elseif action == "delete" then
-      -- Remove filename
-      remove_hook(filename)
-    end
-  end)
-end
-
 ---Function to remove all filenames
 ---@return nil
 M.unhook_all_files = function()
@@ -166,28 +115,7 @@ end
 
 -- Define the functions that use file_action
 
-M.choose_reel_file = function()
-  file_action("go", "Choose file to reel")
-end
-M.choose_remove_hook = function()
-  file_action("delete", "Choose file to unhook")
-end
-
 -- Cache utility functions
-
----Write files to cache
----@return nil
-local write_to_cache = function()
-  local file_write = io.open(cache_file, "w+")
-  if file_write then
-    for _, fname in ipairs(filename_list) do
-      file_write:write(fname .. "\n")
-    end
-    file_write:close()
-  else
-    vim.notify("fish-files: could not cache file", vim.log.levels.INFO)
-  end
-end
 
 ---Read cache file
 ---@return nil
@@ -206,14 +134,10 @@ end
 
 M.manage_hooks = function()
   -- Write to the cache file
-  write_to_cache()
-
-  -- Make the filepath openable by vim
-  local openable_cache = cache_file:gsub("%%", "%\\%%")
+  write_to_cache(filename_list)
 
   -- Open the cache file to edit
-  local bla = edit_cache(openable_cache)
-  vim.print(bla)
+  edit_cache()
 
   -- The autocmd below makes sure we get the information after editing the
   -- cache
@@ -228,11 +152,11 @@ M.setup = function(opts)
   -- Read the cache file to the filenames
   read_cache()
 
-  local fish_group = vim.api.nvim_create_augroup("Fish-files", { clear = true })
+  local fish_group = vim.api.nvim_create_augroup("fish-files", { clear = true })
 
   -- When the cache is changed, read it
   vim.api.nvim_create_autocmd({ "BufWinLeave" }, {
-    pattern = cache_file,
+    buffer = cache_bufnr,
     group = fish_group,
     callback = read_cache,
   })
@@ -240,7 +164,9 @@ M.setup = function(opts)
   -- Save the filenames to the cache file when leaving nvim
   vim.api.nvim_create_autocmd({ "VimLeave" }, {
     group = fish_group,
-    callback = write_to_cache,
+    callback = function()
+      write_to_cache(filename_list)
+    end,
     once = true,
   })
 end
