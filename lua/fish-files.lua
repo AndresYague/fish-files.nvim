@@ -1,9 +1,9 @@
-local cache_bufnr = require("utils").cache_bufnr
 local cache_file = require("utils").cache_file
 local edit_cache = require("utils").edit_cache
-local reel_file = require("utils").reel_file
 local write_to_cache = require("utils").write_to_cache
+local fish_group = vim.api.nvim_create_augroup("fish-files", { clear = true })
 
+local goto_file = {}
 local keymaps = 0
 local prefix
 
@@ -26,13 +26,25 @@ local normalize_fname = function(filename)
 end
 
 ---Shorten a filename for easier visualization
----@param filename string -- Name of the file
+---@param filename string Name of the file
 ---@return string
 local shorten_filename = function(filename)
   return vim.fs.joinpath(
     vim.fs.basename(vim.fs.dirname(filename)),
     vim.fs.basename(filename)
   )
+end
+
+---Open a file, loading the view
+---@param filename string Name of the file
+---@return nil
+local reel_file = function(filename)
+  if vim.api.nvim_buf_get_name(0) ~= "" then
+    vim.cmd.mkview()
+  end
+  vim.cmd.edit(filename)
+  pcall(vim.cmd.loadview(), "")
+  vim.cmd.filetype("detect") -- Detecting again the filetype to trigger LSP and colorscheme
 end
 
 ---Add keymap for the filename
@@ -137,7 +149,7 @@ M.manage_hooks = function()
   write_to_cache(filename_list)
 
   -- Open the cache file to edit
-  edit_cache()
+  edit_cache(goto_file)
 
   -- The autocmd below makes sure we get the information after editing the
   -- cache
@@ -152,13 +164,19 @@ M.setup = function(opts)
   -- Read the cache file to the filenames
   read_cache()
 
-  local fish_group = vim.api.nvim_create_augroup("fish-files", { clear = true })
-
   -- When the cache is changed, read it
-  vim.api.nvim_create_autocmd({ "BufWinLeave" }, {
-    buffer = cache_bufnr,
+  vim.api.nvim_create_autocmd("WinEnter", {
     group = fish_group,
-    callback = read_cache,
+
+    -- We either changed the buffer or selected a file
+    callback = function()
+      if #goto_file > 0 then
+        reel_file(goto_file[1])
+        goto_file = {}
+      else
+        read_cache()
+      end
+    end,
   })
 
   -- Save the filenames to the cache file when leaving nvim

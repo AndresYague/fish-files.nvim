@@ -15,19 +15,6 @@ local root = vim.fs.root(0, {
   "pyproject.toml",
 })
 
--- NOTE: This one must be here for the picker
-
----Open a file, loading the view
----@param filename string? Name of the file
----@return nil
-local reel_file = function(filename)
-  if vim.api.nvim_buf_get_name(0) ~= "" then
-    vim.cmd.mkview()
-  end
-  vim.cmd.edit(filename)
-  pcall(vim.cmd.loadview(), "")
-end
-
 -- Cache utility functions
 
 -- Create the cache directory
@@ -85,7 +72,7 @@ local get_pretty_table = function()
     end
 
     pretty_table[pretty] = line
-    pretty_lines[#pretty_lines+1] = pretty
+    pretty_lines[#pretty_lines + 1] = pretty
   end
 
   return true
@@ -106,10 +93,11 @@ local pretty_bufr_to_cache = function(bufnr)
   write_to_cache(new_buffer)
 end
 
----Open cache in floating window, return bufnr
+---Open cache in floating window, return picked file if it exists
+---@param goto_file string[] -- Store the picked string
 ---@param relsize number? -- Relative size of the floating window to the editor window
----@return nil
-M.edit_cache = function(relsize)
+---@return string?
+M.edit_cache = function(goto_file, relsize)
   relsize = relsize or 0.3
 
   -- Hook manager group
@@ -150,10 +138,10 @@ M.edit_cache = function(relsize)
 
       -- Pick value
       vim.api.nvim_buf_set_keymap(cache_bufnr, "n", "<CR>", "", {
-        callback = function ()
+        callback = function()
+          goto_file[#goto_file+1] = pretty_table[vim.api.nvim_get_current_line()]
           vim.cmd("q!")
-          reel_file(pretty_table[vim.api.nvim_get_current_line()])
-        end
+        end,
       })
     end,
     once = true,
@@ -185,9 +173,7 @@ M.edit_cache = function(relsize)
   end
 end
 
-M.cache_bufnr = cache_bufnr
 M.cache_file = cache_file
-M.reel_file = reel_file
 M.write_to_cache = write_to_cache
 
 return M
