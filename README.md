@@ -28,7 +28,6 @@ require('fish-files').choose_reel_file()
 ## Dependencies
 
 - Neovim > 0.10.0 (probably)
-- Currently depends on [snacks.picker](https://github.com/folke/snacks.nvim) for the picker
 - [which-key](#https://github.com/folke/which-key.nvim) is not needed but it is recommended.
 
 ## Installation
@@ -71,7 +70,7 @@ vim.keymap.set(
   'n',
   '<leader>ja',
   require('fish-files').add_hook,
-  { desc = 'Hook file' }
+  { desc = 'Hook this file' }
 )
 vim.keymap.set(
   'n',
@@ -87,18 +86,6 @@ vim.keymap.set(
 )
 vim.keymap.set(
   'n',
-  '<leader>js',
-  require('fish-files').choose_reel_file,
-  { desc = 'Choose file to reel' }
-)
-vim.keymap.set(
-  'n',
-  '<leader>jx',
-  require('fish-files').choose_remove_hook,
-  { desc = 'Choose file to unhook' }
-)
-vim.keymap.set(
-  'n',
   '<leader>jm',
   require('fish-files').manage_hooks,
   { desc = 'Manage hooks' }
@@ -107,14 +94,13 @@ vim.keymap.set(
 
 #### Manage hooks
 
-The `manage_hooks` function opens the cache directly on a floating window so
-that it can be modified by the user. Upon leaving the cache window, the changes
-to the cache (order of files, number of files) is captured by `fish-files`.
+The `manage_hooks` function opens a buffer/picker on a floating window so
+that it can be modified by the user. Pressing `<CR>` on a file name closes
+the window and opens the file to edit, while saving and exiting (with `:wq`,
+`:x` or `ZZ`) propagates the changes made in the buffer to `fish-files`. That
+is, deleting or re-ordering the file names will remove them from the hooks or
+change the keybind to access them.
 
 ## Inspiration
 
 This plugin is inspired by [harpoon](https://github.com/ThePrimeagen/harpoon/tree/harpoon2)
-
-## TODO
-
-- Remove snacks dependency
