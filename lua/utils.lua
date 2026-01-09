@@ -188,7 +188,7 @@ M.edit_cache = function(goto_file, min_relsize, max_relsize)
     width = math.floor(use_cols),
     border = "rounded",
     style = "minimal",
-    title = "Hooked files",
+    title = "󰛢 Hooked files 󰛢",
     title_pos = "center",
   })
 end
