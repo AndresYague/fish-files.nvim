@@ -193,6 +193,7 @@ M.edit_cache = function(goto_file, min_relsize, max_relsize)
 end
 
 M.cache_file = cache_file
+M.root = root
 M.write_to_cache = write_to_cache
 
 return M

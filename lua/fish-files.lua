@@ -1,5 +1,6 @@
 local cache_file = require("utils").cache_file
 local edit_cache = require("utils").edit_cache
+local root = require("utils").root
 local write_to_cache = require("utils").write_to_cache
 local fish_group = vim.api.nvim_create_augroup("fish-files", { clear = true })
 
@@ -29,10 +30,18 @@ end
 ---@param filename string Name of the file
 ---@return string
 local shorten_filename = function(filename)
-  return vim.fs.joinpath(
-    vim.fs.basename(vim.fs.dirname(filename)),
-    vim.fs.basename(filename)
-  )
+  local pretty_line = nil
+  if root then
+    pretty_line = filename:sub(root:len() + 2)
+  end
+  if pretty_line and pretty_line:len() <= 30 then
+    return pretty_line
+  else
+    return vim.fs.joinpath(
+      vim.fs.basename(vim.fs.dirname(filename)),
+      vim.fs.basename(filename)
+    )
+  end
 end
 
 ---Open a file, loading the view
