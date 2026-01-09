@@ -56,7 +56,7 @@ local reel_file = function(filename)
   end
   vim.cmd.edit(filename)
   pcall(vim.cmd.loadview(), "")
-  vim.cmd.filetype("detect") -- Detecting again the filetype to trigger LSP and colorscheme
+  -- vim.cmd.filetype("detect") -- Detecting again the filetype to trigger LSP and colorscheme
 end
 
 ---Add keymap for the filename
@@ -192,8 +192,21 @@ M.setup = function(opts)
 
     callback = function()
       if #goto_file > 0 then
-        reel_file(goto_file[1])
-        goto_file = {}
+        local index
+        for idx, file in ipairs(filename_list) do
+          if file == goto_file[1] then
+            goto_file = {}
+            index = idx
+            break
+          end
+        end
+
+        -- Just send the keys to nvim, as if the user typed it
+        if index then
+          local keys =
+            vim.api.nvim_replace_termcodes(prefix .. index, true, false, true)
+          vim.api.nvim_feedkeys(keys, "t", false)
+        end
       end
     end,
   })
