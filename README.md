@@ -22,7 +22,7 @@ the chronological order that the file was hooked. Alternatively, open a picker
 with
 
 ```lua
-require('fish-files').choose_reel_file()
+require('fish-files').manage_hooks()
 ```
 
 ## Dependencies
@@ -74,12 +74,6 @@ vim.keymap.set(
 )
 vim.keymap.set(
   'n',
-  '<leader>jr',
-  require('fish-files').unhook_all_files,
-  { desc = 'Unhook all files' }
-)
-vim.keymap.set(
-  'n',
   '<leader>jd',
   require('fish-files').remove_hook,
   { desc = 'Unhook this file' }
@@ -90,9 +84,15 @@ vim.keymap.set(
   require('fish-files').manage_hooks,
   { desc = 'Manage hooks' }
 )
+vim.keymap.set(
+  'n',
+  '<leader>jr',
+  require('fish-files').unhook_all_files,
+  { desc = 'Unhook all files' }
+)
 ```
 
-#### Manage hooks
+## Manage hooks
 
 The `manage_hooks` function opens a buffer/picker on a floating window so
 that it can be modified by the user. Pressing `<CR>` on a file name closes

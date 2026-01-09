@@ -1,7 +1,10 @@
+local cache_bufnr = require("utils").cache_bufnr
 local cache_file = require("utils").cache_file
 local edit_cache = require("utils").edit_cache
 local root = require("utils").root
 local write_to_cache = require("utils").write_to_cache
+
+-- Group for autocommands
 local fish_group = vim.api.nvim_create_augroup("fish-files", { clear = true })
 
 local goto_file = {}
@@ -128,9 +131,7 @@ end
 ---Function to remove all filenames
 ---@return nil
 M.unhook_all_files = function()
-  for _, fname in ipairs(filename_list) do
-    remove_hook(fname, false)
-  end
+  filename_list = {}
   re_index_keymaps()
 end
 
@@ -174,16 +175,25 @@ M.setup = function(opts)
   read_cache()
 
   -- When the cache is changed, read it
-  vim.api.nvim_create_autocmd("WinEnter", {
+  vim.api.nvim_create_autocmd("BufWinLeave", {
+    buffer = cache_bufnr,
     group = fish_group,
 
     -- We either changed the buffer or selected a file
     callback = function()
+      read_cache()
+    end,
+  })
+
+  -- When we pick a file, go to it
+  vim.api.nvim_create_autocmd("User", {
+    group = fish_group,
+    pattern = "FishReelFile",
+
+    callback = function()
       if #goto_file > 0 then
         reel_file(goto_file[1])
         goto_file = {}
-      else
-        read_cache()
       end
     end,
   })

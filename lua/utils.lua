@@ -145,6 +145,7 @@ M.edit_cache = function(goto_file, min_relsize, max_relsize)
           goto_file[#goto_file + 1] =
             pretty_table[vim.api.nvim_get_current_line()]
           vim.cmd("q!")
+          vim.cmd("doautocmd User FishReelFile")
         end,
       })
     end,
@@ -192,6 +193,7 @@ M.edit_cache = function(goto_file, min_relsize, max_relsize)
   })
 end
 
+M.cache_bufnr = cache_bufnr
 M.cache_file = cache_file
 M.root = root
 M.write_to_cache = write_to_cache
