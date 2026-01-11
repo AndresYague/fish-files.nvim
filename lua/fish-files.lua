@@ -13,7 +13,7 @@ local filename_list = {}
 local pretty_table
 
 -- Other needed variables
-local goto_file = {}
+local goto_file
 local keymaps = 0
 local prefix
 
@@ -284,14 +284,12 @@ local edit_cache = function(min_relsize, max_relsize)
         -- Pick value
         vim.api.nvim_buf_set_keymap(cache_bufnr, "n", "<CR>", "", {
           callback = function()
-            goto_file[#goto_file + 1] =
-              pretty_table[vim.api.nvim_get_current_line()]
+            goto_file = pretty_table[vim.api.nvim_get_current_line()]
             vim.cmd("q!")
             vim.cmd("doautocmd User FishReelFile")
           end,
         })
       end,
-      once = true,
     })
 
     -- When the cache is changed, read it
@@ -365,11 +363,11 @@ M.setup = function(opts)
     pattern = "FishReelFile",
 
     callback = function()
-      if #goto_file > 0 then
+      if goto_file then
         local index
         for idx, file in ipairs(filename_list) do
-          if file == goto_file[1] then
-            goto_file = {}
+          if file == goto_file then
+            goto_file = nil
             index = idx
             break
           end
@@ -378,7 +376,7 @@ M.setup = function(opts)
         -- Just send the keys to nvim, as if the user typed it
         if index then
           local keys =
-            vim.api.nvim_replace_termcodes(prefix .. index, true, false, true)
+              vim.api.nvim_replace_termcodes(prefix .. index, true, false, true)
           vim.api.nvim_feedkeys(keys, "t", false)
         end
       end
@@ -391,7 +389,6 @@ M.setup = function(opts)
     callback = function()
       write_to_cache()
     end,
-    once = true,
   })
 end
 
