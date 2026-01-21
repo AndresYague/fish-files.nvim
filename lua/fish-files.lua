@@ -133,8 +133,7 @@ local reel_file = function(filename)
     vim.cmd.mkview()
   end
   vim.cmd.edit(filename)
-  pcall(vim.cmd.loadview(), "")
-  -- vim.cmd.filetype("detect") -- Detecting again the filetype to trigger LSP and colorscheme
+  vim.cmd.loadview({ mods = { silent = true } })
 end
 
 ---Add keymap for the filename
