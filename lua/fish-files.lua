@@ -21,6 +21,7 @@ local prefix
 local root = vim.fs.root(0, {
   ".git",
   ".helix",
+  ".jj",
   ".project",
   "package.json",
   "pom.xml",
